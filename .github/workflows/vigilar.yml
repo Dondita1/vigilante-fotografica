@@ -1,0 +1,23 @@
+name: vigilar
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # cada 10 min (GitHub a veces demora unos minutos más)
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: write   # para guardar el estado en la variable ESTADO
+concurrency: vigilar
+jobs:
+  vigilar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash vigilar.sh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ESTADO_ANTES: ${{ vars.ESTADO }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          WA_TOKEN: ${{ secrets.WA_TOKEN }}
+          WA_TELEFONO_ID: ${{ secrets.WA_TELEFONO_ID }}
+          WA_DESTINO: ${{ secrets.WA_DESTINO }}
