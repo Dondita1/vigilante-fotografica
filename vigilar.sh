@@ -1,14 +1,14 @@
 #!/bin/bash
 # Vigilante externo de Fotográfica (corre en GitHub Actions cada 10 min).
 # Si https://fotografica.codestudio.com.ar deja de responder, avisa UNA vez por
-# ntfy y por WhatsApp; cuando vuelve, avisa que volvió. El estado se guarda en la
-# variable ESTADO del repo para no repetir el aviso cada 10 minutos.
+# ntfy y por WhatsApp; cuando vuelve, avisa que volvió. El estado (ok / caido) se
+# guarda en el archivo `estado` del repo para no repetir el aviso cada 10 minutos.
 # Secretos (Settings → Secrets): NTFY_TOPIC, WA_TOKEN, WA_TELEFONO_ID, WA_DESTINO.
 set -u
 URL="${URL:-https://fotografica.codestudio.com.ar/login}"
-ANTES="${ESTADO_ANTES:-ok}"
+ANTES=$(cat estado 2>/dev/null | tr -d '[:space:]'); ANTES="${ANTES:-ok}"
 
-probar() { curl -s -o /dev/null -m 15 -w '%{http_code}' "$URL" 2>/dev/null || echo "000"; }
+probar() { local c; c=$(curl -s -o /dev/null -m 15 -w '%{http_code}' "$URL" 2>/dev/null) || true; echo "${c:-000}"; }
 
 codigo=$(probar)
 if [ "$codigo" != "200" ]; then   # dos reintentos antes de darlo por caído
@@ -49,10 +49,10 @@ if [ "$AHORA" != "$ANTES" ]; then
     ntfy "Fotográfica · resuelto" "Volvió a andar: el servidor responde desde internet" 3 white_check_mark
     whatsapp "volvió a andar el servidor" "nada, ya está resuelto"
   fi
-  # guardar el estado nuevo en la variable ESTADO del repo
-  if ! gh api -X PATCH "repos/$GITHUB_REPOSITORY/actions/variables/ESTADO" -f name=ESTADO -f value="$AHORA" >/dev/null 2>&1; then
-    gh api -X POST "repos/$GITHUB_REPOSITORY/actions/variables" -f name=ESTADO -f value="$AHORA" >/dev/null || echo "no pude guardar el estado"
-  fi
+  # guardar el estado nuevo en el archivo `estado` del repo (el token de Actions no puede tocar variables)
+  echo "$AHORA" > estado
+  git config user.name vigilante && git config user.email vigilante@users.noreply.github.com
+  git add estado && git commit -qm "estado: $AHORA ($(date -u +%F' '%R) UTC)" && git push -q || echo "no pude guardar el estado"
   echo "aviso enviado: $ANTES → $AHORA"
 else
   echo "sin cambios"

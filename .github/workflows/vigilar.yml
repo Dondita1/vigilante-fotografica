@@ -9,8 +9,7 @@ on:
         required: false
         default: ''
 permissions:
-  contents: read
-  actions: write   # para guardar el estado en la variable ESTADO
+  contents: write   # para guardar el estado en el archivo `estado`
 concurrency: vigilar
 jobs:
   vigilar:
@@ -22,7 +21,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           URL: ${{ inputs.url || 'https://fotografica.codestudio.com.ar/login' }}
-          ESTADO_ANTES: ${{ vars.ESTADO }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
           WA_TOKEN: ${{ secrets.WA_TOKEN }}
           WA_TELEFONO_ID: ${{ secrets.WA_TELEFONO_ID }}
